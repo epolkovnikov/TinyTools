@@ -26,7 +26,9 @@ Input:
         External drives did not required elevated privileges
 
 Output: Tab-separated csv text UTF-8 with the following fields:
-    * rmd5 - md5 hash of the record (not the actual file!) for ease of finding duplicates
+    * rmd5 - md5 hash of the file record (not the actual file!)
+             calculated for the size, creation time and file name (without the full path)
+             for ease of finding potential duplicates
     * FileSize - file size in bytes
     * FileNameCreated - file creation timestamp
     * FileNameLastModified - file modification timestamp. FreeFileSync may leave it unset
@@ -96,7 +98,11 @@ def convert_size(size_bytes):
    return f"{s}{size_name[i]}"
 
 def calc_out_name(drive):
-    label = get_drive_label(drive)
+    try:
+        label = get_drive_label(drive)
+    except OSError as e:
+        print(e)
+        sys.exit(1)
     du = shutil.disk_usage(drive)
     total = convert_size(du.total)
     free = convert_size(du.free)
@@ -109,8 +115,6 @@ def rm_drive(full_path):
     return path_without_drive
 
 def mft2csv(drive, target_file_name):
-    df=list_files_from_drive(drive=drive)
-
     #TODO: Consider excluding: FileNameFlags = FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM
     work_columns = [
         'FileSize',
@@ -125,9 +129,11 @@ def mft2csv(drive, target_file_name):
         'FileNameFlags',
         'FullPath',
     ]
+
+    df=list_files_from_drive(drive=drive)
     
     if len(df) == 0:
-        raise ValueError(f"No file records retrieved from drive {drive} MFT. Try as Administrator")
+        raise ValueError(f"No file records retrieved from drive {drive} MFT (empty dirs do not count as files).\nIs it NTFS? If yes, try as Administrator")
 
     for column_name_to_delete in df.columns.values.tolist():
         if column_name_to_delete not in work_columns:
@@ -135,12 +141,13 @@ def mft2csv(drive, target_file_name):
 
     index_non_files = df[ (df['IsADirectory'] == True) | (df['IsDeleted'] == True) ].index
     df.drop(index_non_files, inplace=True)
-    
+
+    df['FileName'] = df['FullPath'].apply(os.path.basename)
     just_path_column = df['FullPath'].apply(rm_drive)
     df['FullPath'] = just_path_column
 
     # Not using 'FileNameLastModified' in record md5, because it may be missing (the case after FreeFileSync)
-    df['rmd5'] = df.apply(lambda x: md5(f"{x['FileSize']}{x['FileNameCreated']}{x['FullPath']}".encode('utf-8')).hexdigest(), axis=1)
+    df['rmd5'] = df.apply(lambda x: md5(f"{x['FileSize']}{x['FileNameCreated']}{x['FileName']}".encode('utf-8')).hexdigest(), axis=1)
 
     df.to_csv(target_file_name,
               columns=('rmd5', 'FileSize', 'FileNameCreated', 'FileNameLastModified', 'FullPath'),
@@ -255,7 +262,11 @@ def main():
 
         print(f'Parsing MFT of drive {drive} to {target_full_path}')
 
-        rec_count = mft2csv(drive, target_full_path)
+        try:
+            rec_count = mft2csv(drive, target_full_path)
+        except ValueError as e:
+            print(e)
+            sys.exit(1)
 
         print(f'Wrote {rec_count} file records of drive {drive} to {target_full_path}')
 
