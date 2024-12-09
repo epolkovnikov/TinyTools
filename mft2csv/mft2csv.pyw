@@ -58,6 +58,26 @@ from time import perf_counter
 import ctypes
 import ctypes.wintypes as wintypes
 
+''' Generated with ChatGPT '''
+def get_file_system_type(drive_letter):
+    """Detect the file system type of the given drive."""
+    buffer = ctypes.create_unicode_buffer(1024)
+    result = ctypes.windll.kernel32.GetVolumeInformationW(
+        ctypes.c_wchar_p(drive_letter),
+        None,
+        0,
+        None,
+        None,
+        None,
+        buffer,
+        len(buffer)
+    )
+    if result:
+        return buffer.value
+    else:
+        raise ctypes.WinError()
+
+''' Generated with ChatGPT '''
 def get_drive_label(drive):
     # The drive letter must be like C: or C:\ (C:\\ - '\' with escape)
     
@@ -115,6 +135,9 @@ def rm_drive(full_path):
     return path_without_drive
 
 def mft2csv(drive, target_file_name):
+    drive_type = get_file_system_type(drive)
+    if drive_type != 'NTFS':
+        raise ValueError(f"Drive type {drive_type} is not NTFS - unsupported.")
     #TODO: Consider excluding: FileNameFlags = FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM
     work_columns = [
         'FileSize',
@@ -133,7 +156,7 @@ def mft2csv(drive, target_file_name):
     df=list_files_from_drive(drive=drive)
     
     if len(df) == 0:
-        raise ValueError(f"No file records retrieved from drive {drive} MFT (empty dirs do not count as files).\nIs it NTFS? If yes, try as Administrator")
+        raise ValueError(f"No file records retrieved from drive {drive} MFT (empty dirs do not count as files).\nRetry as Administrator")
 
     for column_name_to_delete in df.columns.values.tolist():
         if column_name_to_delete not in work_columns:
