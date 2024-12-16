@@ -1,4 +1,4 @@
-""" mft2csv.pyw v.0.1 - Create a list of files for a given NTFS drive, store the list as a csv file.
+""" mft2csv.pyw v.0.2 - Create a list of files for a given NTFS drive, store the list as a csv file.
 
 Lightweight and fast indexing of remote drives to know location of
 backed-up or archived files on MS Windows local and external NTFS drives.
@@ -20,6 +20,10 @@ GUI - *.pyw has to be associated with pythonw.exe
     Put the drive letter.
     If needed, adjust target/output dir and file (see the defaults below).
 
+GUI in Administrator mode - needed mostly for internal NTFS drives.
+    Option A: Right click on the pyw file and select "Run as Administrator"
+    Option B (MS Windows 10): Right click on the bat file and select "Run as administrator"
+
 Input:
     Drive letter - e.g. E
         Please note: For internal drives, the script must be executed as Administrator
@@ -40,6 +44,7 @@ Execution requirements:
 Tested on MS Windows 11, Python 3.10.11. May also work on MS Windows 10
 Exact Python requirements are listed in requirements.txt
 """
+import traceback
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox as tkMessageBox
@@ -55,15 +60,20 @@ import ctypes
 import ctypes.wintypes as wintypes
 from mft2df import list_files_from_drive
 from time import perf_counter
+#import configparser
 import ctypes
 import ctypes.wintypes as wintypes
 
 ''' Generated with ChatGPT '''
-def get_file_system_type(drive_letter):
+def get_file_system_type(drive):
     """Detect the file system type of the given drive."""
+    if drive.endswith(":"):
+        drive += "\\"
+    if not drive.endswith(":\\"):
+        drive += ":\\"
     buffer = ctypes.create_unicode_buffer(1024)
     result = ctypes.windll.kernel32.GetVolumeInformationW(
-        ctypes.c_wchar_p(drive_letter),
+        ctypes.c_wchar_p(drive),
         None,
         0,
         None,
@@ -105,7 +115,35 @@ def get_drive_label(drive):
 
     # Extract the volume label from the buffer
     volume_label = volume_name_buffer.value
+    if volume_label == '':
+            volume_label = 'Unlabeled'
     return volume_label
+
+''' Based on https://stackoverflow.com/a/827398 '''
+def get_drive_letters():
+    drives = []
+    bitmask = ctypes.windll.kernel32.GetLogicalDrives()
+    for letter in range(ord('A'), ord('Z') + 1):
+        if bitmask & 1:
+            drives.append(chr(letter))
+        bitmask >>= 1
+
+    return drives
+
+def get_drives_and_labels():
+    drive_letters = get_drive_letters()
+    drives_and_labels = []
+    for drive_letter in drive_letters:
+        drive_type = get_file_system_type(drive_letter)
+        drive_label = get_drive_label(drive_letter + ":\\")
+        if drive_type == 'NTFS':
+            drives_and_labels.append(f"{drive_letter}:, {drive_label}, {drive_type} - supported")
+        else:
+            drives_and_labels.append(f"{drive_letter}:, {drive_label}, {drive_type} - unsupported")
+    if len(drives_and_labels) == 0:
+        drives_and_labels=["?:, no drives? - unsupported"]
+
+    return drives_and_labels
 
 ''' Based on https://stackoverflow.com/a/14822210 '''
 def convert_size(size_bytes):
@@ -175,50 +213,72 @@ def mft2csv(drive, target_file_name):
     df.to_csv(target_file_name,
               columns=('rmd5', 'FileSize', 'FileNameCreated', 'FileNameLastModified', 'FullPath'),
               sep='\t', na_rep='None', encoding='utf-8', index=False, header=True)
+
     return len(df)
 
 class App(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
         self.master.title("mft2csv")
-        self.master.geometry('565x130')
+        self.master.geometry('565x135')
         master.report_callback_exception = self.exception_handler
-
-        drive = "C"
 
         self.src_lbl = ttk.Label(text="Drive to scan")
         self.src_lbl.grid(column=0, row=0)
-        self.drive_field = ttk.Entry(width=80, textvariable=drive)
-        self.drive_field.insert(0, drive)
+        drives_and_labels = get_drives_and_labels()
+        self.drive_value = tk.StringVar(self.master, drives_and_labels[0])
+        self.drive_field = ttk.Combobox(self.master, textvariable=self.drive_value, width=62)
+        self.drive_field['values'] = drives_and_labels
+        self.drive_field['state'] = 'readonly'
         self.drive_field.grid(column=1, row=0, padx=2, pady=2)
 
+        self.btn = tk.Button(text="Refresh Drives", command=self.refresh_btn_clicked)
+        self.btn.grid(column=2, row=0, padx=2, pady=2)
+        
         self.target_path_lbl = ttk.Label(text="Target Dir")
-        self.target_path_lbl.grid(column=0, row=1)
+        self.target_path_lbl.grid(column=0, row=2)
         target_path = os.getcwd()
         self.target_path_field = ttk.Entry(width=80, textvariable=target_path)
         self.target_path_field.insert(0, target_path)
-        self.target_path_field.grid(column=1, row=1, padx=2, pady=2)
+        self.target_path_field.grid(column=1, row=2, padx=2, pady=2, columnspan=2)
 
         self.target_file_lbl = ttk.Label(text="Target File")
         self.target_file_lbl.grid(column=0, row=3)
-        target_file_name="[Auto from drive label, letter and the execution time]"
-        self.target_file_field = ttk.Entry(width=80, textvariable=target_file_name)
-        self.target_file_field.insert(0, target_file_name)
-        self.target_file_field.grid(column=1, row=3, padx=2, pady=2)
+        self.target_file_name=tk.StringVar(self.master)
+        self.target_file_field = ttk.Entry(width=80, textvariable=self.target_file_name)
+        self.update_target_file()
+        self.target_file_field.grid(column=1, row=3, padx=2, pady=2, columnspan=2)
+
+        self.drive_value.trace("w", self.update_target_file)
 
         self.btn = tk.Button(text="Go!", command=self.go_btn_clicked)
-        self.btn.grid(column=0, row=4, columnspan=2, padx=2, pady=3)
+        self.btn.grid(column=0, row=4, padx=2, pady=3, columnspan=3)
 
         self.status_lbl = ttk.Label(text="Click [Go!]")
-        self.status_lbl.grid(column=0, row=5, columnspan=2, padx=2, pady=2)
+        self.status_lbl.grid(column=0, row=5, columnspan=3, padx=2, pady=2)
+
+    def update_target_file(self, *args):
+        selected_drive = self.drive_value.get()
+        if selected_drive:
+            m = re.match('^([A-Z])', selected_drive)
+            if m:
+                drive = m.group(1)
+                self.target_file_name.set(calc_out_name(drive + ":\\"))
+
+    def refresh_btn_clicked(self):
+        drives_and_labels = get_drives_and_labels()
+        self.drive_value.set(drives_and_labels[0])
+        self.drive_field['values'] = drives_and_labels
+        self.drive_field.current()
 
     def go_btn_clicked(self):
         self.btn.config(state=tk.DISABLED)
-        drive = self.drive_field.get()
-        if drive.endswith(":"):
-            drive += "\\"
-        if not drive.endswith(":\\"):
-            drive += ":\\"
+        selected_drive = self.drive_value.get()
+        m = re.match('^([A-Z])', selected_drive)
+        drive = "?"
+        if m:
+            drive = m.group(1)
+            self.target_file_name.set(calc_out_name(drive + ":\\"))
 
         target_file_name = self.target_file_field.get()
         if target_file_name == "[Auto from drive label, letter and the execution time]":
@@ -226,20 +286,20 @@ class App(tk.Frame):
         
         target_full_path = os.path.join(self.target_path_field.get(), target_file_name)
 
-        status = f'Parsing MFT of drive {drive} to {target_full_path}'
+        status = f'Parsing drive {drive} MFT to {target_full_path}'
         self.status_lbl.configure(text=status)
         self.status_lbl.update()
-        # All exceptions are handled by exception_handler
+        # All exceptions are handled by the ttk exception_handler
         rec_count = mft2csv(drive, target_full_path) 
         self.btn.config(state=tk.NORMAL)
         self.status_lbl.configure(text=f'Done with {drive} to {target_full_path}')
-        status = f'Wrote {rec_count} file records of drive {drive} to {target_full_path}'
-        tkMessageBox.showinfo('Exception', str(status))
+        status = f'Wrote drive {drive} {rec_count} file records to {target_full_path}'
+        tkMessageBox.showinfo('Status', str(status))
 
     def exception_handler(self, exc, val, tb):
         self.btn.config(state=tk.NORMAL)
-        self.status_lbl.configure(text="Got error. Correct and re-try")
-        tkMessageBox.showerror('Exception', str(val))
+        self.status_lbl.configure(text="Got error. Please correct and re-try")
+        tkMessageBox.showerror('Error', str(val))
     
 def main():
 
@@ -269,7 +329,6 @@ def main():
         )
         
         args = parser.parse_args()
-        
         drive = args.drive.upper()  # Convert to uppercase for standardization
 
         if drive.endswith(":"):
@@ -283,7 +342,7 @@ def main():
         else:
             target_full_path = args.output
 
-        print(f'Parsing MFT of drive {drive} to {target_full_path}')
+        print(f'Parsing drive {drive} MFT to {target_full_path}')
 
         try:
             rec_count = mft2csv(drive, target_full_path)

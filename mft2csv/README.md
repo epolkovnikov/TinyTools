@@ -1,4 +1,4 @@
-# mft2csv.pyw v.0.1
+# mft2csv.pyw v.0.2
 
 Create a list of files for a given NTFS drive, store the list as a csv file.
 
@@ -24,6 +24,10 @@ GUI - *.pyw has to be associated with pythonw.exe
     Double click on the mft2csv.pyw - mft2csv application window shall appear.
     Put the drive letter.
     If needed, adjust target/output dir and file (see the defaults below).
+
+GUI in Administrator mode - needed mostly for internal NTFS drives.
+    Option A: Right click on the pyw file and select "Run as Administrator"
+    Option B (MS Windows 10): Right click on the bat file and select "Run as administrator"
 
 Input:
     Drive letter - e.g. E
