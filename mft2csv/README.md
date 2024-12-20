@@ -28,11 +28,11 @@ GUI in Administrator mode - needed mostly for internal NTFS drives.
     Option A: Right click on the pyw file and select "Run as Administrator"
     Option B (MS Windows 10): Right click on the bat file and select "Run as administrator"
 
-    ![GUI Screenshot](mft2csv_0.2_gui_screenshot.png)
+![GUI Screenshot](mft2csv_0.2_gui_screenshot.png)
 
-    Double click on the mft2csv.pyw - mft2csv application window shall appear.
-    Put the drive letter.
-    If needed, adjust target/output dir and file (see the defaults below).
+Double click on the mft2csv.pyw - mft2csv application window shall appear.
+Put the drive letter.
+If needed, adjust target/output dir and file (see the defaults below).
 
 Input:
     Drive letter - e.g. E
