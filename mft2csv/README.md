@@ -1,14 +1,14 @@
 # mft2csv.pyw v.0.2
 
-Create a list of files for a given NTFS drive, store the list as a csv file.
+Create a list of files for a given NTFS drive, store the list as a csv file (tab-separated).
 
-Lightweight and fast indexing of remote drives to know location of
-backed-up or archived files on MS Windows local and external NTFS drives.
+Lightweight and fast indexing of external and internal drives to know location of
+backed-up or archived files on MS Windows.
 Produces lists fast because it is reading MFT (NTFS metadata) instead of actually
 fetching files from a drive.
 
 Code location and updates: https://github.com/epolkovnikov/TinyTools/mft2csv/
-Developed by by Evgeny Polkovnikov, 2024
+Developed by Evgeny Polkovnikov, 2024
 Thanks hansalemao for https://pypi.org/project/mft2df/
 
 # Usage
@@ -17,17 +17,22 @@ The tool can be used in GUI or in CLI mode.
 
 CLI call example:
     python mft2csv.pyw E
+	  the output file name will be auto-generated,
+	  the file will be put to the current working directory
     or
     pyrhon mft2csv.pyw E -o backup1.csv
 
 GUI - *.pyw has to be associated with pythonw.exe
-    Double click on the mft2csv.pyw - mft2csv application window shall appear.
-    Put the drive letter.
-    If needed, adjust target/output dir and file (see the defaults below).
 
 GUI in Administrator mode - needed mostly for internal NTFS drives.
     Option A: Right click on the pyw file and select "Run as Administrator"
     Option B (MS Windows 10): Right click on the bat file and select "Run as administrator"
+
+    ![GUI Screenshot](mft2csv_0.2_gui_screenshot.png)
+
+    Double click on the mft2csv.pyw - mft2csv application window shall appear.
+    Put the drive letter.
+    If needed, adjust target/output dir and file (see the defaults below).
 
 Input:
     Drive letter - e.g. E
