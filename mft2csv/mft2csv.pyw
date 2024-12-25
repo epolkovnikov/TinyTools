@@ -15,13 +15,13 @@ CLI call example:
     or
     pyrhon mft2csv.pyw E -o backup1.csv
 
-GUI - *.pyw has to be associated with pythonw.exe
+GUI - *.pyw has to be associated with pythonw.exe, or use mft2csv.bat instead
     Double click on the mft2csv.pyw
     Put the drive letter.
     If needed, adjust target/output dir and file (see the defaults below).
 
 GUI in Administrator mode - needed mostly for internal NTFS drives.
-    Right click on the bat file and select "Run as administrator"
+    Right click on the mft2csv.bat file and select "Run as administrator"
 
 Input:
     Drive letter - e.g. E
