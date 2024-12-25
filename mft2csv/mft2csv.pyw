@@ -1,4 +1,4 @@
-""" mft2csv.pyw v.0.2 - Create a list of files for a given NTFS drive, store the list as a csv file.
+""" mft2csv.pyw v.0.3 - Create a list of files for a given NTFS drive, store the list as a csv file.
 
 Lightweight and fast indexing of remote drives to know location of
 backed-up or archived files on MS Windows local and external NTFS drives.
@@ -21,8 +21,7 @@ GUI - *.pyw has to be associated with pythonw.exe
     If needed, adjust target/output dir and file (see the defaults below).
 
 GUI in Administrator mode - needed mostly for internal NTFS drives.
-    Option A: Right click on the pyw file and select "Run as Administrator"
-    Option B (MS Windows 10): Right click on the bat file and select "Run as administrator"
+    Right click on the bat file and select "Run as administrator"
 
 Input:
     Drive letter - e.g. E
@@ -36,7 +35,7 @@ Output: Tab-separated csv text UTF-8 with the following fields:
     * FileSize - file size in bytes
     * FileNameCreated - file creation timestamp
     * FileNameLastModified - file modification timestamp. FreeFileSync may leave it unset
-    * FullPath - path to the file on the drive, the drive letter is omitted
+    * FullPath - path to the file on the drive, the drive letter and the following / or \ are omitted
     Default file location is the current work directory of the script.
     Default file name is calculated as <drive label>_<drive size>_<current time stamp>_<free space>.csv
 
@@ -170,7 +169,8 @@ def calc_out_name(drive):
 
 def rm_drive(full_path):
     _, path_without_drive = os.path.splitdrive(full_path)
-    return path_without_drive
+    # os.path.splitroot is cleaner, but it requires Python 3.12
+    return path_without_drive.lstrip('/\\')
 
 def mft2csv(drive, target_file_name):
     drive_type = get_file_system_type(drive)

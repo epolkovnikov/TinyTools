@@ -1,4 +1,4 @@
-# mft2csv.pyw v.0.2
+# mft2csv.pyw v.0.3
 
 Create a list of files for a given NTFS drive, store the list as a csv file (tab-separated).
 
@@ -25,10 +25,9 @@ CLI call example:
 GUI - *.pyw has to be associated with pythonw.exe
 
 GUI in Administrator mode - needed mostly for internal NTFS drives.
-    Option A: Right click on the pyw file and select "Run as Administrator"
-    Option B (MS Windows 10): Right click on the bat file and select "Run as administrator"
+    Right click on the bat file and select "Run as administrator"
 
-![GUI Screenshot](mft2csv_0.2_gui_screenshot.png)
+![GUI Screenshot](mft2csv_0.2_gui_screenshot.png){width=1430 height=430}
 
 Double click on the mft2csv.pyw - mft2csv application window shall appear.
 Put the drive letter.
@@ -44,7 +43,7 @@ Output: Tab-separated csv text UTF-8 with the following fields:
     * FileSize - file size in bytes
     * FileNameCreated - file creation timestamp
     * FileNameLastModified - file modification timestamp. FreeFileSync may leave it unset
-    * FullPath - path to the file on the drive, the drive letter is omitted
+    * FullPath - path to the file on the drive, the drive letter and the following / or \ are omitted
     Default file location is the current work directory of the script.
     Default file name is calculated as <drive label>_<drive size>_<current time stamp>_<free space>.csv
 
