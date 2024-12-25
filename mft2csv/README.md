@@ -27,7 +27,7 @@ GUI - *.pyw has to be associated with pythonw.exe
 GUI in Administrator mode - needed mostly for internal NTFS drives.
     Right click on the bat file and select "Run as administrator"
 
-![GUI Screenshot](mft2csv_0.2_gui_screenshot.png){width=1430 height=430}
+![GUI Screenshot](mft2csv_0.2_gui_screenshot.png)
 
 Double click on the mft2csv.pyw - mft2csv application window shall appear.
 Put the drive letter.
